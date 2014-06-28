@@ -78,6 +78,7 @@ langDef = emptyDef { Token.commentStart = "/*"
                    , Token.reservedOpNames = [ "=", "==", "===", "->", ".", "+", "-", "*", "/", "%", "<", ">"
                                              , "and", "or", "||", "&&", "!", "++", "--" 
                                              ]
+                   , Token.caseSensitive = False
                    }
 
 lexer = Token.makeTokenParser langDef
