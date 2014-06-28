@@ -131,15 +131,15 @@ phpEnd = semi <|> try (string "?>")
 
 -- Parse a single PHP statement
 oneStatement :: Parser PHPStmt
-oneStatement = ifStmt
-            <|> functionStmt
-            <|> returnStmt
-            <|> whileStmt
-            <|> forStmt
-            <|> echoStmt
-            <|> globalStmt
-            <|> staticStmt
-            <|> stmtExpr
+oneStatement = choice [ ifStmt
+                        , functionStmt
+                        , returnStmt
+                        , whileStmt
+                        , forStmt
+                        , echoStmt
+                        , globalStmt
+                        , staticStmt
+                        , stmtExpr ]
     -- Special case for an expression that's a statement
     -- Expressions can be used without a semicolon in the end in ifs or whatever, 
     -- but a valid statement expression needs a semi in the end
@@ -275,13 +275,13 @@ phpOperators = [ [Infix (reservedOp "*" >> return (BinaryExpr Multiply)) AssocLe
                , [Infix (reservedOp ">" >> return (BinaryExpr Greater)) AssocLeft]
                ]
 
-phpTerm = parens phpExpression
-       <|> try issetExpr
-       <|> try printExpr
-       <|> try functionCallExpr
-       <|> try assignExpr
-       <|> variableExpr
-       <|> liftM Literal phpValue
+phpTerm = choice [ parens phpExpression
+                ,  try issetExpr
+                ,  try printExpr
+                ,  try functionCallExpr
+                ,  try assignExpr
+                ,  variableExpr
+                ,  liftM Literal phpValue ]
 
 issetExpr :: Parser PHPExpr
 issetExpr = do
@@ -323,11 +323,11 @@ printExpr = do
         return $ Print arg
 
 phpValue :: Parser PHPValue
-phpValue = (reserved "true" >> return (PHPBool True))
-        <|> (reserved "false" >> return (PHPBool False))
-        <|> (reserved "null" >> return PHPNull)
-        <|> (Token.naturalOrFloat lexer >>= return . either PHPInt PHPFloat)
-        <|> (stringTok >>= return . PHPString)
+phpValue = choice [ (reserved "true" >> return (PHPBool True))
+                  , (reserved "false" >> return (PHPBool False))
+                  , (reserved "null" >> return PHPNull)
+                  , (Token.naturalOrFloat lexer >>= return . either PHPInt PHPFloat)
+                  , (stringTok >>= return . PHPString) ]
 
 parseString :: String -> [ParseResult]
 parseString str = case parse whileParser "" str of
