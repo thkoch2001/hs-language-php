@@ -145,10 +145,7 @@ oneStatement = choice [ ifStmt
     where stmtExpr = liftM Expression phpExpression <* phpEnd
 
 staticStmt :: Parser PHPStmt
-staticStmt = do
-        stmt <- reserved "static" >> (liftM Static $ sepBy staticArg (Token.symbol lexer ","))
-        semi
-        return stmt
+staticStmt = reserved "static" >> (liftM Static $ sepBy staticArg (Token.symbol lexer ",")) <* semi
     where staticArg = do
                 char '$'
                 name <- identifier
@@ -159,10 +156,7 @@ staticStmt = do
                 return $ StaticVar name defValue
 
 globalStmt :: Parser PHPStmt
-globalStmt = do
-    global <- reserved "global" >> liftM Global plainVariableExpr
-    semi
-    return global
+globalStmt = reserved "global" >> liftM Global plainVariableExpr <* semi
 
 echoStmt :: Parser PHPStmt
 echoStmt = do
@@ -174,11 +168,7 @@ echoStmt = do
     where argList = sepBy phpExpression (Token.symbol lexer ",")
 
 returnStmt :: Parser PHPStmt
-returnStmt = do
-    reserved "return" 
-    ret <- liftM Return phpExpression
-    phpEnd
-    return $ ret
+returnStmt = reserved "return" >> liftM Return phpExpression <* phpEnd
 
 functionStmt :: Parser PHPStmt
 functionStmt = do
@@ -198,11 +188,7 @@ functionStmt = do
             return $ FunctionArgumentDef name defValue
 
 whileStmt :: Parser PHPStmt
-whileStmt = do
-    reserved "while"
-    cond <- parens phpExpression
-    stmt <- (braces statementZeroOrMore) <|> oneStatement
-    return $ While cond stmt
+whileStmt = reserved "while" >> liftM2 While phpExpression ((braces statementZeroOrMore) <|> oneStatement)
 
 forStmt :: Parser PHPStmt
 forStmt = do
@@ -226,10 +212,7 @@ ifStmt = do
     return $ If cond stmt1 cont
 
 elseStmt :: Parser ElseExpr
-elseStmt = do
-    reserved "else"
-    stmt <- (braces statementZeroOrMore) <|> oneStatement
-    return $ Else stmt
+elseStmt = reserved "else" >> liftM Else ((braces statementZeroOrMore) <|> oneStatement)
 
 elseIfStmt :: Parser ElseExpr
 elseIfStmt = do
@@ -240,11 +223,7 @@ elseIfStmt = do
     return $ ElseIf cond stmt cont
 
 assignExpr :: Parser PHPExpr
-assignExpr = do
-    var <- plainVariableExpr
-    reservedOp "="
-    expr <- phpExpression
-    return $ Assign var expr
+assignExpr = liftM2 Assign (plainVariableExpr <* reservedOp "=") phpExpression
 
 plainVariableExpr :: Parser PHPVariable
 plainVariableExpr = try varVarExpr <|> normalVariableExpr
@@ -280,10 +259,7 @@ phpTerm = choice [ parens phpExpression
                 ,  liftM Literal phpValue ]
 
 issetExpr :: Parser PHPExpr
-issetExpr = do
-    reserved "isset"
-    vars <- parens $ sepBy1 plainVariableExpr (Token.symbol lexer ",")
-    return $ Isset vars
+issetExpr = reserved "isset" >> liftM Isset (parens $ sepBy1 plainVariableExpr (Token.symbol lexer ","))
 
 variableExpr :: Parser PHPExpr
 variableExpr = do
@@ -313,9 +289,7 @@ functionCallExpr = try varCall <|> nameCall
         argList = sepBy phpExpression (Token.symbol lexer ",")
 
 printExpr :: Parser PHPExpr
-printExpr = do
-        reserved "print"
-        liftM Print phpExpression
+printExpr = reserved "print" >> liftM Print phpExpression
 
 phpValue :: Parser PHPValue
 phpValue = choice [ (reserved "true" >> return (PHPBool True))
