@@ -295,8 +295,8 @@ phpValue :: Parser PHPValue
 phpValue = choice [ reserved "true" >> return (PHPBool True)
                   , reserved "false" >> return (PHPBool False)
                   , reserved "null" >> return PHPNull
-                  , Token.naturalOrFloat lexer >>= return . either PHPInt PHPFloat
-                  , stringTok >>= return . PHPString ]
+                  , liftM (either PHPInt PHPFloat) (Token.naturalOrFloat lexer)
+                  , liftM PHPString stringTok ]
 
 parseString :: String -> [ParseResult]
 parseString str = case parse whileParser "" str of
