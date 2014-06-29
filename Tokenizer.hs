@@ -90,7 +90,7 @@ identifier = Token.identifier lexer
 reserved = Token.reserved lexer
 float = Token.float lexer
 stringTok = phpString
-reservedOp = (Token.lexeme lexer) . string
+reservedOp = Token.lexeme lexer . string
 parens = Token.parens lexer
 braces = Token.braces lexer
 integer = Token.integer lexer
@@ -107,14 +107,14 @@ phpEof = try $ do
 parsePlainText :: Parser ParseResult
 parsePlainText = liftM PlainText $ do
     c <- anyChar
-    har <- manyTill anyChar ((lookAhead $ reserved "<?php") <|> phpEof)
+    har <- manyTill anyChar (lookAhead (reserved "<?php") <|> phpEof)
     return (c : har)
 
 parsePHPCode :: Parser ParseResult
 parsePHPCode = do
     reserved "<?php"
     seq <- sequenceOfStmt
-    (optional $ string "?>") <|> phpEof
+    optional (string "?>") <|> phpEof
     return $ PHPCode seq
 
 sequenceOfStmt = liftM Seq $ many1 oneStatement
@@ -145,7 +145,7 @@ oneStatement = choice [ ifStmt
     where stmtExpr = liftM Expression phpExpression <* phpEnd
 
 staticStmt :: Parser PHPStmt
-staticStmt = reserved "static" >> (liftM Static $ sepBy staticArg (Token.symbol lexer ",")) <* semi
+staticStmt = reserved "static" >> liftM Static (sepBy staticArg (Token.symbol lexer ",")) <* semi
     where staticArg = do
                 char '$'
                 name <- identifier
@@ -162,7 +162,7 @@ echoStmt :: Parser PHPStmt
 echoStmt = do
         reserved "echo"
         -- echo take one arg only if parens are used, otherwise 1 or more
-        args <- (liftM (:[]) $ parens phpExpression) <|> argList
+        args <- liftM (:[]) (parens phpExpression) <|> argList
         phpEnd
         return $ Echo args
     where argList = sepBy phpExpression (Token.symbol lexer ",")
@@ -188,7 +188,7 @@ functionStmt = do
             return $ FunctionArgumentDef name defValue
 
 whileStmt :: Parser PHPStmt
-whileStmt = reserved "while" >> liftM2 While phpExpression ((braces statementZeroOrMore) <|> oneStatement)
+whileStmt = reserved "while" >> liftM2 While phpExpression (braces statementZeroOrMore <|> oneStatement)
 
 forStmt :: Parser PHPStmt
 forStmt = do
@@ -200,25 +200,25 @@ forStmt = do
         semi
         miter <- sepBy phpExpression (Token.symbol lexer ",")
         return (minit, mcond, miter)
-    body <- (braces statementZeroOrMore) <|> do { s <- statementZeroOrOne; semi; return s }
+    body <- braces statementZeroOrMore <|> do { s <- statementZeroOrOne; semi; return s }
     return $ For init cond iter body
 
 ifStmt :: Parser PHPStmt
 ifStmt = do
     reserved "if"
     cond <- parens phpExpression
-    stmt1 <- (braces statementZeroOrMore) <|> oneStatement
+    stmt1 <- braces statementZeroOrMore <|> oneStatement
     cont <- optionMaybe (elseIfStmt <|> elseStmt)
     return $ If cond stmt1 cont
 
 elseStmt :: Parser ElseExpr
-elseStmt = reserved "else" >> liftM Else ((braces statementZeroOrMore) <|> oneStatement)
+elseStmt = reserved "else" >> liftM Else (braces statementZeroOrMore <|> oneStatement)
 
 elseIfStmt :: Parser ElseExpr
 elseIfStmt = do
     reserved "elseif"
     cond <- parens phpExpression
-    stmt <- (braces statementZeroOrMore) <|> oneStatement
+    stmt <- braces statementZeroOrMore <|> oneStatement
     cont <- optionMaybe (elseIfStmt <|> elseStmt)
     return $ ElseIf cond stmt cont
 
@@ -243,7 +243,7 @@ phpOperators = [ [Infix (reservedOp "*" >> return (BinaryExpr Multiply)) AssocLe
                , [Infix (reservedOp "." >> return (BinaryExpr Concat)) AssocLeft]
                , [Infix (reservedOp "==" >> return (BinaryExpr Equals)) AssocLeft]
                , [Infix (reservedOp "===" >> return (BinaryExpr StrictEquals)) AssocLeft]
-               , [Prefix (reservedOp "!" >> return (Not))]
+               , [Prefix (reservedOp "!" >> return Not)]
                , [Infix (reservedOp "&&" >> return (BinaryExpr And)) AssocLeft]
                , [Infix (reservedOp "||" >> return (BinaryExpr Or)) AssocLeft]
                , [Infix (reservedOp "<" >> return (BinaryExpr Less)) AssocLeft]
@@ -292,11 +292,11 @@ printExpr :: Parser PHPExpr
 printExpr = reserved "print" >> liftM Print phpExpression
 
 phpValue :: Parser PHPValue
-phpValue = choice [ (reserved "true" >> return (PHPBool True))
-                  , (reserved "false" >> return (PHPBool False))
-                  , (reserved "null" >> return PHPNull)
-                  , (Token.naturalOrFloat lexer >>= return . either PHPInt PHPFloat)
-                  , (stringTok >>= return . PHPString) ]
+phpValue = choice [ reserved "true" >> return (PHPBool True)
+                  , reserved "false" >> return (PHPBool False)
+                  , reserved "null" >> return PHPNull
+                  , Token.naturalOrFloat lexer >>= return . either PHPInt PHPFloat
+                  , stringTok >>= return . PHPString ]
 
 parseString :: String -> [ParseResult]
 parseString str = case parse whileParser "" str of
