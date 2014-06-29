@@ -319,7 +319,7 @@ functionCallExpr = try varCall <|> nameCall
 printExpr :: Parser PHPExpr
 printExpr = do
         reserved "print"
-        arg <- parens phpExpression <|> phpExpression
+        arg <- phpExpression
         return $ Print arg
 
 phpValue :: Parser PHPValue

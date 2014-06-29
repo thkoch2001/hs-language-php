@@ -60,6 +60,7 @@ testSuite = testGroup "Parser"
             , testCase "Echo statement" (testFile "tests/echo_statement.php" (show $ [PHPCode $ Seq [Echo [Literal $ PHPInt 1, Literal $ PHPInt 2]]]))
             , testCase "Unary prefix ops" (testFile "tests/unary_prefix_ops.php" (show $ [PHPCode (Seq [Expression (UnaryExpr Before Increment (PHPVariable "bar")),Expression (UnaryExpr Before Decrement (PHPVariable "foo"))])]))
             , testCase "Unary postfix ops" (testFile "tests/unary_postfix_ops.php" (show $ [PHPCode (Seq [Expression (UnaryExpr After Increment (PHPVariable "bar")),Expression (UnaryExpr After Decrement (PHPVariable "foo"))])]))
+            , testCase "Print statement braceless" (testFile "tests/print_braceless.php" (show $ [PHPCode (Seq [Expression (Print (Literal (PHPString "hi")))])]))
             ]
 
 testFile :: FilePath -> String -> IO ()
