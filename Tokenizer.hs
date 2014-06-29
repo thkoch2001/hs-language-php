@@ -144,16 +144,13 @@ oneStatement = choice [ ifStmt
     -- but a valid statement expression needs a semi in the end
     where stmtExpr = liftM Expression phpExpression <* phpEnd
 
-staticStmt :: Parser PHPStmt
-staticStmt = reserved "static" >> liftM Static (sepBy staticArg (Token.symbol lexer ",")) <* semi
-    where staticArg = do
-                char '$'
-                name <- identifier
-                defValue <- optionMaybe $ do
+parseParameterList ctor = sepBy (parseParameter ctor) (Token.symbol lexer ",")
+  where parseParameter ctor = char '$' >> liftM2 ctor identifier (optionMaybe $ do
                     Token.symbol lexer "="
-                    phpValue
+                    phpValue)
 
-                return $ StaticVar name defValue
+staticStmt :: Parser PHPStmt
+staticStmt = reserved "static" >> liftM Static (parseParameterList StaticVar) <* semi
 
 globalStmt :: Parser PHPStmt
 globalStmt = reserved "global" >> liftM Global plainVariableExpr <* semi
@@ -174,18 +171,9 @@ functionStmt :: Parser PHPStmt
 functionStmt = do
         reserved "function"
         name <- identifier
-        argDefs <- parens $ sepBy argDefExpr (optional (Token.symbol lexer ","))
+        argDefs <- parens $ parseParameterList FunctionArgumentDef
         body <- braces statementZeroOrMore
         return $ Function name argDefs body
-    where
-        argDefExpr = do
-            char '$'
-            name <- identifier
-            defValue <- optionMaybe $ do
-                Token.symbol lexer "="
-                phpValue
-
-            return $ FunctionArgumentDef name defValue
 
 whileStmt :: Parser PHPStmt
 whileStmt = reserved "while" >> liftM2 While phpExpression (braces statementZeroOrMore <|> oneStatement)
