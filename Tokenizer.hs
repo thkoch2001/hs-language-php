@@ -7,6 +7,7 @@ import Text.ParserCombinators.Parsec.Expr
 import Text.ParserCombinators.Parsec.Language
 import qualified Text.ParserCombinators.Parsec.Token as Token
 import StringParse
+import Control.Applicative ((<*))
 
 data PHPValue = PHPString String
               | PHPInt Integer
@@ -141,10 +142,7 @@ oneStatement = choice [ ifStmt
     -- Special case for an expression that's a statement
     -- Expressions can be used without a semicolon in the end in ifs or whatever, 
     -- but a valid statement expression needs a semi in the end
-    where stmtExpr = do
-              expr <- phpExpression
-              phpEnd
-              return $ Expression expr
+    where stmtExpr = liftM Expression phpExpression <* phpEnd
 
 staticStmt :: Parser PHPStmt
 staticStmt = do
