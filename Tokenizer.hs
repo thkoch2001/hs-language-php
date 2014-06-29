@@ -116,9 +116,7 @@ parsePHPCode = do
     (optional $ string "?>") <|> phpEof
     return $ PHPCode seq
 
-sequenceOfStmt = do
-    list <- many1 oneStatement
-    return $ Seq list
+sequenceOfStmt = liftM Seq $ many1 oneStatement
 
 statementZeroOrMore = liftM Seq $ many oneStatement
 
@@ -319,8 +317,7 @@ functionCallExpr = try varCall <|> nameCall
 printExpr :: Parser PHPExpr
 printExpr = do
         reserved "print"
-        arg <- phpExpression
-        return $ Print arg
+        liftM Print phpExpression
 
 phpValue :: Parser PHPValue
 phpValue = choice [ (reserved "true" >> return (PHPBool True))
